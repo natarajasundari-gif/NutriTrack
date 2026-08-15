@@ -1,0 +1,485 @@
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <fstream>
+#include <limits>
+#include <ctime>
+#include <cmath>
+#include <cctype>
+
+using namespace std;
+
+// ---------- Utility ----------
+
+double getPositiveDouble(const string &prompt)
+{
+    double x;
+
+    while (true)
+    {
+        cout << prompt;
+
+        if (!(cin >> x))
+        {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Invalid input. Enter a number.\n";
+            continue;
+        }
+
+        if (x <= 0)
+        {
+            cout << "Value must be > 0.\n";
+            continue;
+        }
+
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        return x;
+    }
+}
+
+int getIntInRange(const string &prompt, int lo, int hi)
+{
+    int v;
+
+    while (true)
+    {
+        cout << prompt;
+
+        if (!(cin >> v))
+        {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Invalid input. Enter integer.\n";
+            continue;
+        }
+
+        if (v < lo || v > hi)
+        {
+            cout << "Enter value between " << lo << " and " << hi << ".\n";
+            continue;
+        }
+
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        return v;
+    }
+}
+
+string getNonEmptyLine(const string &prompt)
+{
+    string s;
+
+    while (true)
+    {
+        cout << prompt;
+        getline(cin, s);
+
+        if (s.find_first_not_of(" \t\r\n") == string::npos)
+        {
+            cout << "Input cannot be empty.\n";
+            continue;
+        }
+
+        return s;
+    }
+}
+
+char getGender(const string &prompt)
+{
+    string s;
+
+    while (true)
+    {
+        cout << prompt;
+        getline(cin, s);
+
+        for (size_t i = 0; i < s.size(); i++)
+            s[i] = tolower(s[i]);
+
+        if (s == "m" || s == "male")
+            return 'M';
+
+        if (s == "f" || s == "female")
+            return 'F';
+
+        cout << "Enter M/F.\n";
+    }
+}
+
+// ---------- BMI ----------
+
+double calculateBMI(double weight, double height)
+{
+    return weight / (height * height);
+}
+
+string categorizeBMI(double bmi)
+{
+    if (bmi < 18.5)
+        return "Underweight";
+
+    if (bmi < 25.0)
+        return "Normal";
+
+    if (bmi < 30.0)
+        return "Overweight";
+
+    return "Obese";
+}
+
+string analyzeLevel(double bmi)
+{
+    if (bmi < 18.5)
+        return "Your level is LOW → You need to GAIN weight.";
+
+    if (bmi < 25.0)
+        return "Your level is NORMAL → Keep maintaining!";
+
+    if (bmi < 30.0)
+        return "Your level is HIGH → You should REDUCE weight.";
+
+    return "Your level is VERY HIGH (Obese) → You must REDUCE weight urgently.";
+}
+
+void printBMIProgressBar(double bmi)
+{
+    const int maxBMI = 40;
+    const int width = 40;
+
+    int pos = (int)floor(
+        (bmi < 0 ? 0 : (bmi > maxBMI ? maxBMI : bmi)) + 0.5
+    );
+
+    cout << "\nBMI Progress (0–40):\n[";
+
+    for (int i = 0; i <= width; ++i)
+    {
+        if (i == pos)
+            cout << '|';
+        else
+            cout << '.';
+    }
+
+    cout << "]\n";
+    cout << "(Marker at BMI " << pos << ")\n";
+}
+
+// ---------- Calories & Activity ----------
+
+double mifflinStJeorBMR(
+    int age,
+    char gender,
+    double weightKg,
+    double heightM
+)
+{
+    double heightCm = heightM * 100.0;
+
+    double s = (gender == 'M') ? 5.0 : -161.0;
+
+    return 10.0 * weightKg
+         + 6.25 * heightCm
+         - 5.0 * age
+         + s;
+}
+
+double activityMultiplier(int activityLevel)
+{
+    if (activityLevel == 1)
+        return 1.2;
+
+    if (activityLevel == 2)
+        return 1.55;
+
+    return 1.725;
+}
+
+double calculateCalorieRecommendation(
+    int age,
+    char gender,
+    double weightKg,
+    double heightM,
+    int activityLevel
+)
+{
+    return mifflinStJeorBMR(
+        age,
+        gender,
+        weightKg,
+        heightM
+    ) * activityMultiplier(activityLevel);
+}
+
+// ---------- Macronutrients ----------
+
+void printMacros(double calories, double weightKg)
+{
+    double protein = weightKg * 1.8;
+    double fat = (0.25 * calories) / 9.0;
+    double carbs = (calories - (protein * 4 + fat * 9)) / 4.0;
+
+    cout << "\nMacronutrient Suggestion:\n";
+    cout << "  Protein: " << protein << " g\n";
+    cout << "  Fat    : " << fat << " g\n";
+    cout << "  Carbs  : " << carbs << " g\n";
+}
+
+// ---------- Exercise ----------
+
+void suggestExercise(
+    const string &bmiCategory,
+    int activityLevel
+)
+{
+    cout << "\nExercise Suggestion:\n";
+
+    if (bmiCategory == "Underweight")
+        cout << "  Strength training and calorie-dense diet.\n";
+
+    else if (bmiCategory == "Normal")
+        cout << "  Mix of cardio + strength to stay fit.\n";
+
+    else
+        cout << "  Cardio focus (walking, swimming, cycling).\n";
+
+    if (activityLevel == 1)
+        cout << "  Increase light daily activity.\n";
+
+    if (activityLevel == 2)
+        cout << "  Moderate exercise 3–4 days/week.\n";
+
+    if (activityLevel == 3)
+        cout << "  Advanced training 5+ days/week.\n";
+}
+
+// ---------- Meal Plan ----------
+
+void suggestMealPlan(const string &bmiCategory)
+{
+    cout << "\nSample Meal Plan (" << bmiCategory << "):\n";
+
+    if (bmiCategory == "Underweight")
+    {
+        cout << "  Breakfast: Oats + Milk + Nuts\n";
+        cout << "  Lunch: Rice + Chicken + Vegetables\n";
+        cout << "  Snack: Peanut butter sandwich\n";
+        cout << "  Dinner: Chapati + Paneer curry\n";
+    }
+
+    else if (bmiCategory == "Normal")
+    {
+        cout << "  Balanced meals: Protein + Veggies + Whole grains.\n";
+    }
+
+    else
+    {
+        cout << "  Breakfast: Oats + Fruit\n";
+        cout << "  Lunch: Grilled chicken + Salad\n";
+        cout << "  Snack: Sprouts/fruit\n";
+        cout << "  Dinner: Light vegetable soup + Roti\n";
+    }
+}
+
+// ---------- Report ----------
+
+void saveReport(
+    const string &file,
+    const string &name,
+    double bmi,
+    const string &cat
+)
+{
+    ofstream ofs(file.c_str(), ios::app);
+
+    if (!ofs)
+        return;
+
+    time_t t = time(NULL);
+
+    ofs << "Report: " << ctime(&t);
+    ofs << "Name: " << name
+        << "\nBMI: " << bmi
+        << " (" << cat << ")\n\n";
+
+    ofs.close();
+}
+
+void viewReports(const string &file)
+{
+    ifstream ifs(file.c_str());
+
+    if (!ifs)
+    {
+        cout << "No reports available.\n";
+        return;
+    }
+
+    cout << "\n--- Saved Reports ---\n";
+
+    string line;
+
+    while (getline(ifs, line))
+        cout << line << "\n";
+
+    cout << "----------------------\n";
+}
+
+// ---------- Doctor Flow ----------
+
+void newEntry(const string &file)
+{
+    cout << "\n--- Doctor Consultation ---\n";
+
+    string name = getNonEmptyLine("Enter your name: ");
+
+    int age = getIntInRange(
+        "Enter age: ",
+        1,
+        120
+    );
+
+    char gender = getGender(
+        "Enter gender (M/F): "
+    );
+
+    double weight = getPositiveDouble(
+        "Enter weight (kg): "
+    );
+
+    double height = getPositiveDouble(
+        "Enter height (m): "
+    );
+
+    // Step 1: Diagnose BMI
+
+    double bmi = calculateBMI(weight, height);
+    string cat = categorizeBMI(bmi);
+
+    cout << fixed << setprecision(2);
+
+    cout << "\nDoctor: Hello "
+         << name
+         << ", your BMI is "
+         << bmi
+         << " ("
+         << cat
+         << ").\n";
+
+    printBMIProgressBar(bmi);
+
+    cout << analyzeLevel(bmi) << "\n";
+
+    char ans;
+
+    // Calories
+
+    cout << "Doctor: Do you want me to calculate your calorie needs? (Y/N): ";
+    cin >> ans;
+
+    cin.ignore(
+        numeric_limits<streamsize>::max(),
+        '\n'
+    );
+
+    if (ans == 'Y' || ans == 'y')
+    {
+        int activity = getIntInRange(
+            "What is your activity level? (1=Low, 2=Medium, 3=High): ",
+            1,
+            3
+        );
+
+        double maintenance =
+            calculateCalorieRecommendation(
+                age,
+                gender,
+                weight,
+                height,
+                activity
+            );
+
+        cout << "Recommended Calories: "
+             << maintenance
+             << " kcal/day\n";
+
+        // Exercise
+
+        cout << "Doctor: Want exercise suggestions? (Y/N): ";
+        cin >> ans;
+
+        cin.ignore(
+            numeric_limits<streamsize>::max(),
+            '\n'
+        );
+
+        if (ans == 'Y' || ans == 'y')
+            suggestExercise(cat, activity);
+
+        // Macros
+
+        cout << "Doctor: Want macronutrient breakdown? (Y/N): ";
+        cin >> ans;
+
+        cin.ignore(
+            numeric_limits<streamsize>::max(),
+            '\n'
+        );
+
+        if (ans == 'Y' || ans == 'y')
+            printMacros(maintenance, weight);
+
+        // Meals
+
+        cout << "Doctor: Want meal plan suggestion? (Y/N): ";
+        cin >> ans;
+
+        cin.ignore(
+            numeric_limits<streamsize>::max(),
+            '\n'
+        );
+
+        if (ans == 'Y' || ans == 'y')
+            suggestMealPlan(cat);
+    }
+
+    saveReport(
+        file,
+        name,
+        bmi,
+        cat
+    );
+
+    cout << "Doctor: Report saved.\n";
+}
+
+// ---------- Main ----------
+
+int main()
+{
+    const string file = "bmi_reports.txt";
+
+    while (true)
+    {
+        cout << "\n--- BMI Health App ---\n";
+        cout << "1) New consultation\n";
+        cout << "2) View saved reports\n";
+        cout << "3) Exit\n";
+
+        int c = getIntInRange(
+            "Choose: ",
+            1,
+            3
+        );
+
+        if (c == 1)
+            newEntry(file);
+
+        else if (c == 2)
+            viewReports(file);
+
+        else
+            break;
+    }
+
+    return 0;
+}
