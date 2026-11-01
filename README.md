@@ -1,4 +1,4 @@
-# 🩺 BMI Health App | C++
+# 🩺 NutriTrack | C++
 
 A menu-driven health assessment application developed using C++. The application calculates Body Mass Index (BMI), estimates daily calorie requirements, and provides personalized exercise, macronutrient, and meal plan suggestions based on user inputs.
 
